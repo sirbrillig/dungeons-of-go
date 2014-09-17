@@ -44,6 +44,10 @@ func (c *Client) Equal(other *Client) bool {
 	return false
 }
 
+func (c *Client) sendMessage(message string) {
+	c.OutputChan <- []byte(message + "\n")
+}
+
 // -----
 // End Client
 
@@ -53,6 +57,7 @@ func takeAction(client *Client, userInput string) {
 	quitExp := regexp.MustCompile(`\b(quit|exit|bye)\b`)
 	if quitExp.MatchString(userInputNormal) == true {
 		fmt.Println("closing connection for ", client.Name)
+		client.sendMessage("you have fled the dungeon!")
 		client.Close()
 	}
 }
@@ -94,12 +99,6 @@ func clientReader(client *Client) {
 	}
 }
 
-// Send a string to the outputChan
-func sendOutput(data string, outputChan chan []byte) {
-	dataBytes := []byte(data + "\n")
-	outputChan <- dataBytes
-}
-
 func acceptAndMakeNewConnection(listener net.Listener) {
 	inputChan := make(chan []byte)
 	outputChan := make(chan []byte)
@@ -116,7 +115,7 @@ func acceptAndMakeNewConnection(listener net.Listener) {
 	go clientReader(client)
 	go handleUserInput(client)
 	go handleUserOutput(conn, outputChan)
-	sendOutput("greetings and welcome to the dungeon!", outputChan)
+	client.sendMessage("greetings and welcome to the dungeon!")
 }
 
 // ----
