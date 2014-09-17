@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"fmt"
 	"net"
+	"regexp"
+	"strings"
 )
 
 // Client
@@ -45,16 +47,22 @@ func (c *Client) Equal(other *Client) bool {
 // -----
 // End Client
 
-func takeAction(userInput string) {
+func takeAction(client *Client, userInput string) {
 	fmt.Println("Input: ", userInput)
+	userInputNormal := strings.ToLower(userInput)
+	quitExp := regexp.MustCompile(`\b(quit|exit|bye)\b`)
+	if quitExp.MatchString(userInputNormal) == true {
+		fmt.Println("closing connection for ", client.Name)
+		client.Close()
+	}
 }
 
 // Wait for data to appear in a chan and call takeAction with the data
-func handleUserInput(inputChan chan []byte) {
+func handleUserInput(client *Client) {
 	for {
 		select {
-		case userInput := <-inputChan:
-			go takeAction(string(userInput))
+		case userInput := <-client.InputChan:
+			go takeAction(client, string(userInput))
 			break
 		}
 	}
@@ -106,7 +114,7 @@ func acceptAndMakeNewConnection(listener net.Listener) {
 
 	client := &Client{Name: "foobar", InputChan: inputChan, OutputChan: outputChan, Conn: conn}
 	go clientReader(client)
-	go handleUserInput(inputChan)
+	go handleUserInput(client)
 	go handleUserOutput(conn, outputChan)
 	sendOutput("greetings and welcome to the dungeon!", outputChan)
 }
