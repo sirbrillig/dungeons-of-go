@@ -1,9 +1,49 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"net"
 )
+
+// Client
+// -----
+
+type Client struct {
+	Name       string
+	InputChan  chan []byte
+	OutputChan chan []byte
+	Conn       net.Conn
+	QuitChan   chan bool
+}
+
+func (c *Client) Read(buffer []byte) bool {
+	bytesRead, error := c.Conn.Read(buffer)
+	if error != nil {
+		c.Close()
+		fmt.Println(error)
+		return false
+	}
+	fmt.Println("Read ", bytesRead, " bytes")
+	return true
+}
+
+func (c *Client) Close() {
+	c.QuitChan <- true
+	c.Conn.Close()
+}
+
+func (c *Client) Equal(other *Client) bool {
+	if bytes.Equal([]byte(c.Name), []byte(other.Name)) {
+		if c.Conn == other.Conn {
+			return true
+		}
+	}
+	return false
+}
+
+// -----
+// End Client
 
 func takeAction(userInput string) {
 	fmt.Println("Input: ", userInput)
@@ -39,15 +79,10 @@ func writeToConn(userConn net.Conn, data []byte) {
 }
 
 // Read on a Conn for data, then add that data to a chan
-func readFromConn(userConn net.Conn, dataChan chan []byte) {
-	for {
-		var input = make([]byte, 512)
-		_, err := userConn.Read(input)
-		if err != nil {
-			fmt.Println("error while reading")
-			return
-		}
-		dataChan <- input
+func clientReader(client *Client) {
+	input := make([]byte, 2048)
+	for client.Read(input) {
+		client.InputChan <- input
 	}
 }
 
@@ -57,7 +92,7 @@ func sendOutput(data string, outputChan chan []byte) {
 	outputChan <- dataBytes
 }
 
-func newConnection(listener net.Listener) {
+func acceptAndMakeNewConnection(listener net.Listener) {
 	inputChan := make(chan []byte)
 	outputChan := make(chan []byte)
 
@@ -68,12 +103,16 @@ func newConnection(listener net.Listener) {
 	}
 
 	fmt.Println("connection made")
-	go readFromConn(conn, inputChan)
+
+	client := &Client{Name: "foobar", InputChan: inputChan, OutputChan: outputChan, Conn: conn}
+	go clientReader(client)
 	go handleUserInput(inputChan)
 	go handleUserOutput(conn, outputChan)
 	sendOutput("greetings and welcome to the dungeon!", outputChan)
 }
 
+// ----
+// main
 func main() {
 	fmt.Println("starting up")
 
@@ -82,8 +121,9 @@ func main() {
 		fmt.Println("error starting server:", err)
 		return
 	}
+	defer listener.Close()
 
 	for {
-		newConnection(listener)
+		acceptAndMakeNewConnection(listener)
 	}
 }
