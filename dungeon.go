@@ -80,3 +80,14 @@ func (r *Room) OpenExit(direction Direction) bool {
 
 	return true
 }
+
+// NewDungeon returns a new Dungeon type initialized with one empty Room.
+func NewDungeon() *Dungeon {
+	firstRoom := &Room{}
+	rooms := make(map[Point]*Room)
+	rooms[Point{X: 0, Y: 0}] = firstRoom
+
+	return &Dungeon{
+		Rooms: rooms,
+	}
+}
