@@ -10,12 +10,19 @@ import (
 func takeAction(client *Client, userInput string) {
 	fmt.Println("Input: ", userInput)
 	userInputNormal := strings.ToLower(userInput)
+
 	quitExp := regexp.MustCompile(`\b(quit|exit|bye)\b`)
 	if quitExp.MatchString(userInputNormal) == true {
 		fmt.Println("closing connection for ", client.Name)
 		client.sendMessage("you have fled the dungeon!")
 		client.Close()
 	}
+
+	lookExp := regexp.MustCompile(`\b(l|look)\b`)
+	if lookExp.MatchString(userInputNormal) == true {
+		client.sendMessage(client.CurrentRoom.Description)
+	}
+
 }
 
 // Wait for data to appear in a chan and call takeAction with the data
@@ -72,6 +79,10 @@ func acceptAndMakeNewConnection(listener net.Listener) {
 	go handleUserInput(client)
 	go handleUserOutput(conn, outputChan)
 	client.sendMessage("greetings and welcome to the dungeon!")
+
+	dungeon := NewDungeon()
+	client.Dungeon = dungeon
+	client.CurrentRoom = dungeon.Rooms[Point{0, 0}]
 }
 
 // ----

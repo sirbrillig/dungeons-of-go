@@ -7,11 +7,13 @@ import (
 )
 
 type Client struct {
-	Name       string
-	InputChan  chan []byte
-	OutputChan chan []byte
-	Conn       net.Conn
-	QuitChan   chan bool
+	Name        string
+	InputChan   chan []byte
+	OutputChan  chan []byte
+	Conn        net.Conn
+	QuitChan    chan bool
+	CurrentRoom *Room
+	Dungeon     *Dungeon
 }
 
 func (c *Client) Read(buffer []byte) bool {
