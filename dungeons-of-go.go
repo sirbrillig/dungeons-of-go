@@ -16,12 +16,16 @@ func takeAction(client *Client, userInput string) {
 		fmt.Println("closing connection for ", client.Name)
 		client.sendMessage("you have fled the dungeon!")
 		client.Close()
+		return
 	}
 
 	lookExp := regexp.MustCompile(`\b(l|look)\b`)
 	if lookExp.MatchString(userInputNormal) == true {
 		client.sendMessage(client.CurrentRoom.Description)
+		return
 	}
+
+	client.sendMessage("Sorry, I didn't understand what you said.")
 
 }
 
